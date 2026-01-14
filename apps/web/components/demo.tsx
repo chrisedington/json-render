@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { CodeBlock } from "./code-block";
 
 const SIMULATION_PROMPT = "Create a contact form with name, email, and message";
@@ -248,6 +248,198 @@ export function Demo() {
     setTimeout(() => setActionFired(false), 2000);
   };
 
+  // Render a single element
+  const renderElement = (element: UIElement, elements: Record<string, UIElement>): React.ReactNode => {
+    const { type, props, children: childKeys = [] } = element;
+    const renderChildren = () => childKeys.map((key) => {
+      const child = elements[key];
+      return child ? renderElement(child, elements) : null;
+    });
+
+    const baseClass = "animate-in fade-in slide-in-from-bottom-1 duration-200";
+
+    switch (type) {
+      // Layout
+      case "Card":
+        return (
+          <div key={element.key} className={`border border-border rounded-lg p-3 bg-background ${baseClass}`}>
+            {props.title && <div className="font-semibold text-sm mb-1">{props.title as string}</div>}
+            {props.description && <div className="text-[10px] text-muted-foreground mb-2">{props.description as string}</div>}
+            <div className="space-y-2">{renderChildren()}</div>
+          </div>
+        );
+      case "Stack":
+        const isHorizontal = props.direction === "horizontal";
+        const stackGap = props.gap === "lg" ? "gap-3" : props.gap === "sm" ? "gap-1" : "gap-2";
+        return (
+          <div key={element.key} className={`flex ${isHorizontal ? "flex-row items-center" : "flex-col"} ${stackGap} ${baseClass}`}>
+            {renderChildren()}
+          </div>
+        );
+      case "Grid":
+        const cols = props.columns === 4 ? "grid-cols-4" : props.columns === 3 ? "grid-cols-3" : "grid-cols-2";
+        const gridGap = props.gap === "lg" ? "gap-3" : props.gap === "sm" ? "gap-1" : "gap-2";
+        return (
+          <div key={element.key} className={`grid ${cols} ${gridGap} ${baseClass}`}>
+            {renderChildren()}
+          </div>
+        );
+      case "Divider":
+        return <hr key={element.key} className={`border-border my-2 ${baseClass}`} />;
+
+      // Form Inputs
+      case "Input":
+        return (
+          <div key={element.key} className={baseClass}>
+            {props.label && <label className="text-[10px] text-muted-foreground block mb-0.5">{props.label as string}</label>}
+            <div className="h-7 w-full bg-card border border-border rounded px-2 text-xs flex items-center text-muted-foreground/50">
+              {props.placeholder as string || ""}
+            </div>
+          </div>
+        );
+      case "Textarea":
+        const rows = (props.rows as number) || 3;
+        return (
+          <div key={element.key} className={baseClass}>
+            {props.label && <label className="text-[10px] text-muted-foreground block mb-0.5">{props.label as string}</label>}
+            <div className={`w-full bg-card border border-border rounded px-2 py-1 text-xs text-muted-foreground/50`} style={{ minHeight: rows * 16 }}>
+              {props.placeholder as string || ""}
+            </div>
+          </div>
+        );
+      case "Select":
+        return (
+          <div key={element.key} className={baseClass}>
+            {props.label && <label className="text-[10px] text-muted-foreground block mb-0.5">{props.label as string}</label>}
+            <div className="h-7 w-full bg-card border border-border rounded px-2 text-xs flex items-center justify-between text-muted-foreground/50">
+              <span>{props.placeholder as string || "Select..."}</span>
+              <span>v</span>
+            </div>
+          </div>
+        );
+      case "Checkbox":
+        return (
+          <label key={element.key} className={`flex items-center gap-2 text-xs ${baseClass}`}>
+            <div className={`w-3.5 h-3.5 border border-border rounded-sm ${props.checked ? "bg-foreground" : "bg-card"}`} />
+            {props.label as string}
+          </label>
+        );
+      case "Radio":
+        const options = (props.options as string[]) || [];
+        return (
+          <div key={element.key} className={`space-y-1 ${baseClass}`}>
+            {props.label && <div className="text-[10px] text-muted-foreground mb-1">{props.label as string}</div>}
+            {options.map((opt, i) => (
+              <label key={i} className="flex items-center gap-2 text-xs">
+                <div className={`w-3.5 h-3.5 border border-border rounded-full ${i === 0 ? "bg-foreground" : "bg-card"}`} />
+                {opt}
+              </label>
+            ))}
+          </div>
+        );
+      case "Switch":
+        return (
+          <label key={element.key} className={`flex items-center justify-between gap-2 text-xs ${baseClass}`}>
+            <span>{props.label as string}</span>
+            <div className={`w-8 h-4 rounded-full relative ${props.checked ? "bg-foreground" : "bg-border"}`}>
+              <div className={`absolute w-3 h-3 rounded-full bg-background top-0.5 transition-all ${props.checked ? "right-0.5" : "left-0.5"}`} />
+            </div>
+          </label>
+        );
+
+      // Actions
+      case "Button":
+        const variant = props.variant as string;
+        const btnClass = variant === "danger" ? "bg-red-500 text-white" : variant === "secondary" ? "bg-card border border-border text-foreground" : "bg-foreground text-background";
+        return (
+          <button key={element.key} onClick={handleAction} className={`px-3 py-1.5 rounded text-xs font-medium hover:opacity-90 transition-opacity ${btnClass} ${baseClass}`}>
+            {props.label as string}
+          </button>
+        );
+      case "Link":
+        return (
+          <span key={element.key} className={`text-xs text-blue-500 underline cursor-pointer ${baseClass}`}>
+            {props.label as string}
+          </span>
+        );
+
+      // Typography
+      case "Heading":
+        const level = (props.level as number) || 2;
+        const headingClass = level === 1 ? "text-lg font-bold" : level === 3 ? "text-xs font-semibold" : level === 4 ? "text-[10px] font-semibold" : "text-sm font-semibold";
+        return <div key={element.key} className={`${headingClass} ${baseClass}`}>{props.text as string}</div>;
+      case "Text":
+        const textVariant = props.variant as string;
+        const textClass = textVariant === "caption" ? "text-[10px]" : textVariant === "muted" ? "text-xs text-muted-foreground" : "text-xs";
+        return <p key={element.key} className={`${textClass} ${baseClass}`}>{props.content as string}</p>;
+
+      // Data Display
+      case "Image":
+        return (
+          <div key={element.key} className={`bg-card border border-border rounded flex items-center justify-center text-[10px] text-muted-foreground ${baseClass}`} style={{ width: (props.width as number) || 80, height: (props.height as number) || 60 }}>
+            {props.alt as string || "img"}
+          </div>
+        );
+      case "Avatar":
+        const name = props.name as string || "?";
+        const initials = name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+        const avatarSize = props.size === "lg" ? "w-10 h-10 text-sm" : props.size === "sm" ? "w-6 h-6 text-[8px]" : "w-8 h-8 text-[10px]";
+        return (
+          <div key={element.key} className={`${avatarSize} rounded-full bg-muted flex items-center justify-center font-medium ${baseClass}`}>
+            {initials}
+          </div>
+        );
+      case "Badge":
+        const badgeVariant = props.variant as string;
+        const badgeClass = badgeVariant === "success" ? "bg-green-100 text-green-800" : badgeVariant === "warning" ? "bg-yellow-100 text-yellow-800" : badgeVariant === "danger" ? "bg-red-100 text-red-800" : "bg-muted text-foreground";
+        return <span key={element.key} className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${badgeClass} ${baseClass}`}>{props.text as string}</span>;
+      case "Alert":
+        const alertType = props.type as string;
+        const alertClass = alertType === "success" ? "bg-green-50 border-green-200" : alertType === "warning" ? "bg-yellow-50 border-yellow-200" : alertType === "error" ? "bg-red-50 border-red-200" : "bg-blue-50 border-blue-200";
+        return (
+          <div key={element.key} className={`p-2 rounded border ${alertClass} ${baseClass}`}>
+            <div className="text-xs font-medium">{props.title as string}</div>
+            {props.message && <div className="text-[10px] mt-0.5">{props.message as string}</div>}
+          </div>
+        );
+      case "Progress":
+        const value = Math.min(100, Math.max(0, (props.value as number) || 0));
+        return (
+          <div key={element.key} className={baseClass}>
+            {props.label && <div className="text-[10px] text-muted-foreground mb-1">{props.label as string}</div>}
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-foreground rounded-full transition-all" style={{ width: `${value}%` }} />
+            </div>
+          </div>
+        );
+      case "Rating":
+        const ratingValue = (props.value as number) || 0;
+        const maxRating = (props.max as number) || 5;
+        return (
+          <div key={element.key} className={baseClass}>
+            {props.label && <div className="text-[10px] text-muted-foreground mb-1">{props.label as string}</div>}
+            <div className="flex gap-0.5">
+              {Array.from({ length: maxRating }).map((_, i) => (
+                <span key={i} className={`text-sm ${i < ratingValue ? "text-yellow-400" : "text-muted"}`}>*</span>
+              ))}
+            </div>
+          </div>
+        );
+
+      // Fallback for Form type (legacy)
+      case "Form":
+        return (
+          <div key={element.key} className={`border border-border rounded-lg p-3 bg-background ${baseClass}`}>
+            {props.title && <div className="font-semibold text-sm mb-2">{props.title as string}</div>}
+            <div className="space-y-2">{renderChildren()}</div>
+          </div>
+        );
+
+      default:
+        return <div key={element.key} className={`text-[10px] text-muted-foreground ${baseClass}`}>[{type}]</div>;
+    }
+  };
+
   // Render preview from tree
   const renderPreview = () => {
     const currentTree = mode === "simulation" ? currentSimulationStage?.tree : tree;
@@ -259,53 +451,12 @@ export function Demo() {
     const root = currentTree.elements[currentTree.root];
     if (!root) return null;
 
-    const title = root.props.title as string | undefined;
-    const children = (root.children ?? []).map((key) => currentTree.elements[key]).filter(Boolean) as UIElement[];
-
     return (
-      <div className="text-center animate-in fade-in duration-200">
-        <div className="border border-border rounded-lg p-4 bg-background inline-block text-left w-56">
-          {title && <h3 className="font-semibold mb-3 text-sm">{title}</h3>}
-          <div className="space-y-2">
-            {children.map((child) => {
-              if (child.type === "Input") {
-                return (
-                  <div key={child.key} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">
-                      {child.props.label as string}
-                    </label>
-                    <div className="h-7 w-full bg-card border border-border rounded px-2 text-xs" />
-                  </div>
-                );
-              }
-              if (child.type === "Textarea") {
-                return (
-                  <div key={child.key} className="animate-in fade-in slide-in-from-bottom-1 duration-200">
-                    <label className="text-[10px] text-muted-foreground block mb-0.5">
-                      {child.props.label as string}
-                    </label>
-                    <div className="h-14 w-full bg-card border border-border rounded px-2 text-xs" />
-                  </div>
-                );
-              }
-              if (child.type === "Button") {
-                return (
-                  <button
-                    key={child.key}
-                    onClick={handleAction}
-                    className="w-full px-3 py-1.5 bg-foreground text-background rounded text-xs font-medium hover:opacity-90 transition-opacity animate-in fade-in slide-in-from-bottom-1 duration-200"
-                  >
-                    {child.props.label as string}
-                  </button>
-                );
-              }
-              return null;
-            })}
-          </div>
-        </div>
+      <div className="text-center animate-in fade-in duration-200 w-full max-w-[240px]">
+        {renderElement(root, currentTree.elements)}
         {actionFired && (
           <div className="mt-3 text-xs font-mono text-muted-foreground animate-in fade-in slide-in-from-bottom-2">
-            onAction(&quot;submit&quot;)
+            onAction()
           </div>
         )}
       </div>
