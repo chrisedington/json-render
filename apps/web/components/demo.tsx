@@ -346,6 +346,7 @@ export function Demo() {
                 placeholder="Describe what you want to build..."
                 className="flex-1 bg-transparent outline-none placeholder:text-muted-foreground/50"
                 disabled={isLoading}
+                maxLength={140}
                 autoFocus
               />
             </form>

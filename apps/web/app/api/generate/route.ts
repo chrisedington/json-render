@@ -42,13 +42,17 @@ EXAMPLE - Contact Form:
 
 Generate JSONL patches for the user's request:`;
 
+const MAX_PROMPT_LENGTH = 140;
+
 export async function POST(req: Request) {
   const { prompt } = await req.json();
+
+  const sanitizedPrompt = String(prompt || '').slice(0, MAX_PROMPT_LENGTH);
 
   const result = streamText({
     model: gateway('openai/gpt-4o-mini'),
     system: SYSTEM_PROMPT,
-    prompt,
+    prompt: sanitizedPrompt,
     temperature: 0.7,
   });
 
