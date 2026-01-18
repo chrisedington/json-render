@@ -152,7 +152,7 @@ function Dashboard() {
           placeholder="Create a revenue dashboard..."
           onKeyDown={(e) => e.key === 'Enter' && send(e.target.value)}
         />
-        <Renderer tree={tree} components={registry} />
+        <Renderer tree={tree} registry={registry} />
       </ActionProvider>
     </DataProvider>
   );
